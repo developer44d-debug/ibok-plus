@@ -1,0 +1,93 @@
+const express = require("express");
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const path = require("path");
+
+const app = express();
+app.use(express.json());
+app.use(express.static("public"));
+
+/* ===== مهم لـ Render ===== */
+const PORT = process.env.PORT || 3000;
+
+/* ===== MongoDB Atlas ===== */
+mongoose.connect(https://account.mongodb.com/account/reset/password/fd67fd830a8f5d2b45df5f62657f2b33c6bc604c7588b0c02f25a8b1daa8313e?email=developer44d%40gmail.com);
+
+/* ===== MODEL ===== */
+const User = mongoose.model("User", {
+  username: String,
+  password: String,
+  balance: { type: Number, default: 1000000 }
+});
+
+/* ===== CREATE USERS ===== */
+async function seed(){
+if(!await User.findOne({username:"ahmed"})){
+let h=await bcrypt.hash("123456",10);
+await User.create({username:"ahmed",password:h});
+}
+if(!await User.findOne({username:"mohamed"})){
+let h=await bcrypt.hash("123456",10);
+await User.create({username:"mohamed",password:h});
+}
+}
+seed();
+
+/* ===== LOGIN ===== */
+app.post("/login", async (req,res)=>{
+const u=await User.findOne({username:req.body.username});
+if(!u) return res.status(400).send("User not found");
+
+const ok=await bcrypt.compare(req.body.password,u.password);
+if(!ok) return res.status(400).send("Wrong password");
+
+const token=jwt.sign({id:u._id},"secret");
+
+res.json({token});
+});
+
+/* ===== AUTH ===== */
+function auth(req,res,next){
+try{
+const decoded = jwt.verify(req.headers.authorization,"secret");
+req.userId = decoded.id;
+next();
+}catch{
+res.status(401).send("Unauthorized");
+}
+}
+
+/* ===== GET USER ===== */
+app.get("/me", auth, async (req,res)=>{
+const user = await User.findById(req.userId);
+res.json(user);
+});
+
+/* ===== TRANSFER ===== */
+app.post("/transfer", auth, async (req,res)=>{
+
+const {toUser, amount} = req.body;
+
+const from = await User.findById(req.userId);
+const to = await User.findOne({username: toUser});
+
+if(!to) return res.send("User not found");
+if(from.balance < amount) return res.send("No balance");
+
+from.balance -= amount;
+to.balance += amount;
+
+await from.save();
+await to.save();
+
+res.send("Transfer Done 💸");
+});
+
+/* ===== FRONTEND ===== */
+app.get("/", (req,res)=>{
+res.sendFile(path.join(__dirname,"public/index.html"));
+});
+
+/* ===== START ===== */
+app.listen(PORT, ()=>console.log("🔥 Server running"));

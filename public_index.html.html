@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bank System</title>
+
+<style>
+body{font-family:Arial;background:#f4f4f4}
+.card{background:#fff;padding:20px;margin:20px;border-radius:10px}
+button{padding:10px;background:#d71920;color:#fff;border:none}
+input{padding:10px;width:100%;margin:5px 0}
+</style>
+
+</head>
+
+<body>
+
+<div class="card" id="login">
+<h2>Login</h2>
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<div class="card" id="app" style="display:none">
+<h2>Dashboard</h2>
+<div id="balance"></div>
+
+<h3>Transfer</h3>
+<input id="toUser" placeholder="To Username">
+<input id="amount" placeholder="Amount">
+<button onclick="transfer()">Send</button>
+</div>
+
+<script>
+let token="";
+
+async function login(){
+
+let res = await fetch("/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+username:user.value,
+password:pass.value
+})
+});
+
+let data = await res.json();
+token = data.token;
+
+login.style.display="none";
+app.style.display="block";
+
+load();
+}
+
+async function load(){
+
+let res = await fetch("/me",{
+headers:{Authorization:token}
+});
+
+let data = await res.json();
+
+balance.innerText = "Balance: " + data.balance;
+}
+
+async function transfer(){
+
+let res = await fetch("/transfer",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+Authorization:token
+},
+body:JSON.stringify({
+toUser: toUser.value,
+amount: Number(amount.value)
+})
+});
+
+alert(await res.text());
+load();
+}
+</script>
+
+</body>
+</html>
